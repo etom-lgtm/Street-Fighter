@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Street Fighter - Guard & Jump Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            background-color: #0b0c10;
+            color: #fff;
+            font-family: 'Impact', 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 1024px;
+            height: 576px;
+            border: 4px solid #f39c12;
+            box-shadow: 0 0 40px rgba(243, 156, 18, 0.4);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* START MENU / OVERLAY STYLES */
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 15, 0.92);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            pointer-events: auto;
+            padding: 20px;
+        }
+
+        .title-logo {
+            font-size: 56px;
+            letter-spacing: 5px;
+            color: #f1c40f;
+            text-transform: uppercase;
+            text-shadow: 
+                0 0 15px #e67e22, 
+                3px 3px 0px #c0392b,
+                6px 6px 0px #000;
+            margin-bottom: 2px;
+            font-style: italic;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #e74c3c;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px #000;
+        }
+
+        .menu-body {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .menu-box {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 320px;
+        }
+
+        .menu-btn {
+            background: linear-gradient(135deg, #e67e22, #e74c3c);
+            border: 2px solid #f1c40f;
+            color: #fff;
+            padding: 10px 16px;
+            font-size: 18px;
+            font-family: 'Impact', sans-serif;
+            letter-spacing: 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            transition: transform 0.15s, background 0.2s, box-shadow 0.2s;
+            text-align: center;
+            text-shadow: 2px 2px #000;
+        }
+
+        .menu-btn-journey {
+            background: linear-gradient(135deg, #8e44ad, #d35400);
+            border-color: #f39c12;
+        }
+
+        .menu-btn-custom {
+            background: linear-gradient(135deg, #27ae60, #2980b9);
+            border-color: #2ecc71;
+        }
+
+        .menu-btn:hover {
+            transform: scale(1.04);
+            background: linear-gradient(135deg, #f39c12, #c0392b);
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.6);
+        }
+
+        .btn-back {
+            background: linear-gradient(135deg, #7f8c8d, #34495e);
+            border-color: #bdc3c7;
+        }
+        .btn-back:hover {
+            background: linear-gradient(135deg, #95a5a6, #2c3e50);
+        }
+
+        /* HOMESCREEN CONTROLS CARD */
+        .controls-card {
+            background: rgba(20, 20, 30, 0.95);
+            border: 2px solid #f1c40f;
+            border-radius: 8px;
+            padding: 14px;
+            width: 500px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            font-family: Arial, sans-serif;
+        }
+
+        .controls-card h3 {
+            font-family: 'Impact', sans-serif;
+            color: #f1c40f;
+            font-size: 20px;
+            letter-spacing: 2px;
+            text-align: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 4px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .player-controls-column h4 {
+            font-family: 'Impact', sans-serif;
+            letter-spacing: 1px;
+            font-size: 16px;
+            margin-bottom: 6px;
+            text-shadow: 1px 1px #000;
+        }
+
+        .p1-title { color: #3498db; }
+        .p2-title { color: #e74c3c; }
+
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #ccc;
+        }
+
+        kbd {
+            background: #222;
+            border: 1px solid #777;
+            border-bottom: 2px solid #555;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #fff;
+            box-shadow: 0 2px 0 #000;
+        }
+
+        kbd.highlight-key {
+            background: #e67e22;
+            border-color: #f1c40f;
+            color: #fff;
+        }
+
+        kbd.block-key {
+            background: #2980b9;
+            border-color: #3498db;
+            color: #fff;
+        }
+
+        /* CUSTOMIZER PANEL STYLES */
+        .customizer-panel {
+            background: rgba(20, 20, 30, 0.95);
+            border: 2px solid #f1c40f;
+            border-radius: 10px;
+            padding: 16px 20px;
+            width: 380px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
+        }
+
+        .custom-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            font-family: 'Impact', sans-serif;
+            font-size: 16px;
+            background: #2c3e50;
+            color: #aaa;
+            border: 2px solid #555;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: #e67e22;
+            color: #fff;
+            border-color: #f1c40f;
+            text-shadow: 1px 1px #000;
+        }
+
+        .input-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .input-group input[type="text"] {
+            background: #111;
+            border: 1px solid #f1c40f;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: 'Impact', sans-serif;
+            font-size: 16px;
+            letter-spacing: 1px;
+            width: 180px;
+            text-transform: uppercase;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .color-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .color-item input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+        }
+
+        .color-item input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-item input[type="color"]::-webkit-color-swatch {
+            border: 2px solid #fff;
+            border-radius: 50%;
+        }
+
+        /* IN-GAME HUD */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 30px;
+            z-index: 5;
+        }
+        .top-hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .fighter-hud {
+            width: 40%;
+        }
+        .fighter-name {
+            font-size: 22px;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px #000;
+        }
+        #p1-name { color: #3498db; }
+        #p2-name { color: #e74c3c; text-align: right; }
+        
+        .health-bar-outer {
+            width: 100%;
+            height: 26px;
+            background: #2c3e50;
+            border: 3px solid #f1c40f;
+            box-shadow: 0 0 10px rgba(0,0,0,0.8);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .health-bar-inner {
+            height: 100%;
+            background: linear-gradient(180deg, #2ecc71, #27ae60);
+            transition: width 0.15s ease-out;
+        }
+        #p2-health-inner {
+            float: right;
+        }
+
+        .timer-box-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .timer-box {
+            background: rgba(0, 0, 0, 0.85);
+            border: 3px solid #f1c40f;
+            color: #f1c40f;
+            font-size: 38px;
+            width: 70px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 6px;
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.5);
+        }
+
+        #journey-stage-badge {
+            background: #8e44ad;
+            border: 1px solid #f1c40f;
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 1px;
+            display: none;
+            box-shadow: 0 0 10px rgba(142, 68, 173, 0.8);
+        }
+
+        #controls-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #555;
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            letter-spacing: 1px;
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+            white-space: nowrap;
+        }
+
+        /* GAME OVER OVERLAY */
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.88);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 15;
+        }
+        #game-over-screen h1 {
+            font-size: 64px;
+            color: #f1c40f;
+            text-shadow: 0 0 20px #e67e22, 4px 4px #000;
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+            text-align: center;
+        }
+        #game-over-subtext {
+            font-size: 20px;
+            color: #ecf0f1;
+            margin-bottom: 25px;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px #000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="canvas" width="1024" height="576"></canvas>
+
+    <!-- START MENU OVERLAY -->
+    <div id="start-menu-overlay" class="menu-overlay">
+        <div class="title-logo">STREET FIGHTER</div>
+        <div class="subtitle">JOURNEY & BLOCK EDITION</div>
+
+        <div class="menu-body">
+            <!-- MODE SELECTION -->
+            <div id="mode-select-box" class="menu-box">
+                <button class="menu-btn menu-btn-journey" onclick="startJourneyMode()">🔥 JOURNEY MODE</button>
+                <button class="menu-btn" onclick="openDifficultySelect()">VS CPU (SINGLE MATCH)</button>
+                <button class="menu-btn" onclick="startPVPMode()">2 PLAYERS (VS LOCAL)</button>
+                <button class="menu-btn menu-btn-custom" onclick="openCustomizer()">🎨 CUSTOMIZE CHARACTERS</button>
+            </div>
+
+            <!-- DIFFICULTY SELECTION -->
+            <div id="difficulty-select-box" class="menu-box" style="display: none;">
+                <button class="menu-btn" onclick="startCPUMode('EASY')">EASY</button>
+                <button class="menu-btn" onclick="startCPUMode('MEDIUM')">MEDIUM</button>
+                <button class="menu-btn" onclick="startCPUMode('HARD')">HARD</button>
+                <button class="menu-btn btn-back" onclick="backToModeSelect()">BACK</button>
+            </div>
+
+            <!-- CHARACTER CUSTOMIZER PANEL -->
+            <div id="customizer-box" class="customizer-panel" style="display: none;">
+                <div class="custom-tabs">
+                    <button class="tab-btn active" id="tab-p1" onclick="selectCustomTab(1)">P1 CUSTOM</button>
+                    <button class="tab-btn" id="tab-p2" onclick="selectCustomTab(2)">P2 CUSTOM</button>
+                </div>
+
+                <div class="input-group">
+                    <label>FIGHTER NAME:</label>
+                    <input type="text" id="cust-name" maxlength="12" oninput="updateCustomizer()">
+                </div>
+
+                <div class="color-grid">
+                    <div class="color-item"><label>SKIN TONE</label><input type="color" id="cust-skin" onchange="updateCustomizer()"></div>
+                    <div class="color-item"><label>GI / OUTFIT</label><input type="color" id="cust-gi" onchange="updateCustomizer()"></div>
+                    <div class="color-item"><label>BELT</label><input type="color" id="cust-belt" onchange="updateCustomizer()"></div>
+                    <div class="color-item"><label>HEADBAND</label><input type="color" id="cust-headband" onchange="updateCustomizer()"></div>
+                    <div class="color-item" style="grid-column: span 2;"><label>HADOKEN COLOR</label><input type="color" id="cust-fireball" onchange="updateCustomizer()"></div>
+                </div>
+
+                <button class="menu-btn btn-back" style="width: 100%;" onclick="backToModeSelect()">SAVE & BACK</button>
+            </div>
+
+            <!-- HOMESCREEN CONTROLS CARD -->
+            <div class="controls-card">
+                <h3>🎮 FIGHTER CONTROLS</h3>
+                <div class="controls-grid">
+                    <!-- P1 CONTROLS -->
+                    <div class="player-controls-column">
+                        <div class="p1-title">PLAYER 1</div>
+                        <div class="control-row"><span>Move Left / Right</span> <span><kbd>A</kbd> / <kbd>D</kbd></span></div>
+                        <div class="control-row"><span>Crouch</span> <span><kbd>S</kbd></span></div>
+                        <div class="control-row"><span>Jump</span> <span><kbd class="highlight-key">SPACE</kbd> / <kbd>W</kbd></span></div>
+                        <div class="control-row"><span>Block / Guard</span> <span><kbd class="block-key">E</kbd> / <kbd class="block-key">L-Shift</kbd></span></div>
+                        <div class="control-row"><span>Punch</span> <span><kbd>F</kbd></span></div>
+                        <div class="control-row"><span>Kick</span> <span><kbd>G</kbd></span></div>
+                        <div class="control-row"><span>Hadoken</span> <span><kbd>H</kbd></span></div>
+                    </div>
+
+                    <!-- P2 CONTROLS -->
+                    <div class="player-controls-column">
+                        <div class="p2-title">PLAYER 2 (LOCAL)</div>
+                        <div class="control-row"><span>Move Left / Right</span> <span><kbd>🠔</kbd> / <kbd>🠖</kbd></span></div>
+                        <div class="control-row"><span>Crouch</span> <span><kbd>🠗</kbd></span></div>
+                        <div class="control-row"><span>Jump</span> <span><kbd class="highlight-key">🠕</kbd></span></div>
+                        <div class="control-row"><span>Block / Guard</span> <span><kbd class="block-key">R-Shift</kbd> / <kbd class="block-key">J</kbd></span></div>
+                        <div class="control-row"><span>Punch</span> <span><kbd>U</kbd></span></div>
+                        <div class="control-row"><span>Kick</span> <span><kbd>I</kbd></span></div>
+                        <div class="control-row"><span>Hadoken</span> <span><kbd>O</kbd></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- IN-GAME HUD -->
+    <div id="hud">
+        <div class="top-hud">
+            <div class="fighter-hud">
+                <div class="fighter-name" id="p1-name">RYU</div>
+                <div class="health-bar-outer">
+                    <div class="health-bar-inner" id="p1-health-inner" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <div class="timer-box-container">
+                <div class="timer-box" id="timer">99</div>
+                <div id="journey-stage-badge">STAGE 1 / 2</div>
+            </div>
+
+            <div class="fighter-hud">
+                <div class="fighter-name" id="p2-name">KEN</div>
+                <div class="health-bar-outer">
+                    <div class="health-bar-inner" id="p2-health-inner" style="width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="controls-bar">
+            <span><b>P1:</b> A/D (Move) | SPACE (Jump) | E / L-Shift (Block) | F (Punch) | G (Kick) | H (Hadoken)</span>
+            <span id="p2-controls-hint">| <b>P2:</b> 🠔/🠖 (Move) | 🠕 (Jump) | R-Shift/J (Block) | U (Punch) | I (Kick) | O (Hadoken)</span>
+        </div>
+    </div>
+
+    <!-- GAME OVER / STAGE CLEAR SCREEN -->
+    <div id="game-over-screen">
+        <h1 id="winner-text">K.O.</h1>
+        <div id="game-over-subtext">DEFEATED THE OPPONENT</div>
+        <div class="menu-box" id="game-over-buttons"></div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const GROUND_Y = 460;
+const GRAVITY = 1.2;
+
+let gameState = 'MENU'; // 'MENU', 'PLAYING', 'GAME_OVER', 'CUSTOMIZE'
+let gameTimer = 99;
+let timerInterval = null;
+
+let vsAI = true;
+let isJourneyMode = false;
+let journeyStage = 0;
+let aiDifficulty = 'MEDIUM';
+let shakeTime = 0;
+
+const keys = {};
+
+// Prevent scrolling when using Space or Arrow keys
+window.addEventListener('keydown', e => {
+    if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+        e.preventDefault();
+    }
+    keys[e.code] = true;
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// CUSTOM PLAYER CONFIGURATIONS
+let p1Custom = {
+    name: "RYU",
+    color: "#f1c40f",
+    giColor: "#ecf0f1",
+    beltColor: "#2c3e50",
+    headbandColor: "#e74c3c",
+    fireballColor: "#3498db"
+};
+
+let p2Custom = {
+    name: "KEN",
+    color: "#f39c12",
+    giColor: "#e74c3c",
+    beltColor: "#2c3e50",
+    headbandColor: "#f1c40f",
+    fireballColor: "#e74c3c"
+};
+
+let activeCustomTab = 1;
+
+// JOURNEY MODE ROSTER CONFIGURATION
+const journeyRoster = [
+    {
+        name: "KEN (STAGE 1)",
+        color: "#f39c12",
+        giColor: "#e74c3c",
+        beltColor: "#2c3e50",
+        headbandColor: "#f1c40f",
+        fireballColor: "#3498db",
+        maxHealth: 100,
+        aiConfig: {
+            speed: 3.2,
+            punchProb: 0.04,
+            kickProb: 0.06,
+            specialProb: 0.015,
+            jumpProb: 0.02,
+            blockProb: 0.15
+        }
+    },
+    {
+        name: "AKUMA (STAGE 2 - FINAL)",
+        color: "#c0392b",
+        giColor: "#1a252f",
+        beltColor: "#8e44ad",
+        headbandColor: "#e74c3c",
+        fireballColor: "#e74c3c",
+        maxHealth: 125,
+        aiConfig: {
+            speed: 5.0,
+            punchProb: 0.09,
+            kickProb: 0.14,
+            specialProb: 0.045,
+            jumpProb: 0.05,
+            blockProb: 0.35
+        }
+    }
+];
+
+// MENU & CUSTOMIZER NAVIGATION
+function openDifficultySelect() {
+    document.getElementById('mode-select-box').style.display = 'none';
+    document.getElementById('difficulty-select-box').style.display = 'flex';
+}
+
+function backToModeSelect() {
+    gameState = 'MENU';
+    document.getElementById('difficulty-select-box').style.display = 'none';
+    document.getElementById('customizer-box').style.display = 'none';
+    document.getElementById('mode-select-box').style.display = 'flex';
+    applyCustomizersToFighters();
+}
+
+function openCustomizer() {
+    gameState = 'CUSTOMIZE';
+    document.getElementById('mode-select-box').style.display = 'none';
+    document.getElementById('customizer-box').style.display = 'block';
+    selectCustomTab(1);
+}
+
+function selectCustomTab(playerNum) {
+    activeCustomTab = playerNum;
+    document.getElementById('tab-p1').classList.toggle('active', playerNum === 1);
+    document.getElementById('tab-p2').classList.toggle('active', playerNum === 2);
+
+    const data = playerNum === 1 ? p1Custom : p2Custom;
+    document.getElementById('cust-name').value = data.name;
+    document.getElementById('cust-skin').value = data.color;
+    document.getElementById('cust-gi').value = data.giColor;
+    document.getElementById('cust-belt').value = data.beltColor;
+    document.getElementById('cust-headband').value = data.headbandColor;
+    document.getElementById('cust-fireball').value = data.fireballColor;
+
+    applyCustomizersToFighters();
+}
+
+function updateCustomizer() {
+    const target = activeCustomTab === 1 ? p1Custom : p2Custom;
+    target.name = document.getElementById('cust-name').value.toUpperCase() || (activeCustomTab === 1 ? "P1" : "P2");
+    target.color = document.getElementById('cust-skin').value;
+    target.giColor = document.getElementById('cust-gi').value;
+    target.beltColor = document.getElementById('cust-belt').value;
+    target.headbandColor = document.getElementById('cust-headband').value;
+    target.fireballColor = document.getElementById('cust-fireball').value;
+
+    applyCustomizersToFighters();
+}
+
+function applyCustomizersToFighters() {
+    p1.color = p1Custom.color;
+    p1.giColor = p1Custom.giColor;
+    p1.beltColor = p1Custom.beltColor;
+    p1.headbandColor = p1Custom.headbandColor;
+    p1.fireballColor = p1Custom.fireballColor;
+
+    if (!isJourneyMode) {
+        p2.color = p2Custom.color;
+        p2.giColor = p2Custom.giColor;
+        p2.beltColor = p2Custom.beltColor;
+        p2.headbandColor = p2Custom.headbandColor;
+        p2.fireballColor = p2Custom.fireballColor;
+    }
+}
+
+function startCPUMode(diff) {
+    isJourneyMode = false;
+    vsAI = true;
+    aiDifficulty = diff;
+    document.getElementById('journey-stage-badge').style.display = 'none';
+    document.getElementById('p2-controls-hint').style.display = 'none';
+
+    setupOpponent({
+        name: `KEN (${diff})`,
+        color: '#f39c12',
+        giColor: '#e74c3c',
+        beltColor: '#2c3e50',
+        headbandColor: '#f1c40f',
+        fireballColor: '#3498db',
+        maxHealth: 100,
+        aiConfig: null
+    });
+
+    launchGame();
+}
+
+function startPVPMode() {
+    isJourneyMode = false;
+    vsAI = false;
+    document.getElementById('journey-stage-badge').style.display = 'none';
+    document.getElementById('p2-controls-hint').style.display = 'inline';
+
+    setupOpponent({
+        name: p2Custom.name,
+        color: p2Custom.color,
+        giColor: p2Custom.giColor,
+        beltColor: p2Custom.beltColor,
+        headbandColor: p2Custom.headbandColor,
+        fireballColor: p2Custom.fireballColor,
+        maxHealth: 100,
+        aiConfig: null
+    });
+
+    launchGame();
+}
+
+function startJourneyMode() {
+    isJourneyMode = true;
+    vsAI = true;
+    journeyStage = 0;
+    document.getElementById('journey-stage-badge').style.display = 'block';
+    document.getElementById('p2-controls-hint').style.display = 'none';
+
+    loadJourneyStage();
+    launchGame();
+}
+
+function loadJourneyStage() {
+    const config = journeyRoster[journeyStage];
+    document.getElementById('journey-stage-badge').innerText = `STAGE ${journeyStage + 1} / ${journeyRoster.length}`;
+    setupOpponent(config);
+}
+
+function setupOpponent(config) {
+    p2.color = config.color;
+    p2.giColor = config.giColor;
+    p2.beltColor = config.beltColor;
+    p2.headbandColor = config.headbandColor;
+    p2.fireballColor = config.fireballColor;
+    p2.maxHealth = config.maxHealth;
+    p2.health = config.maxHealth;
+    p2.aiConfig = config.aiConfig;
+    document.getElementById('p2-name').innerText = config.name;
+}
+
+function showMainMenu() {
+    gameState = 'MENU';
+    clearInterval(timerInterval);
+    document.getElementById('start-menu-overlay').style.display = 'flex';
+    document.getElementById('game-over-screen').style.display = 'none';
+    document.getElementById('hud').style.display = 'none';
+    backToModeSelect();
+}
+
+function launchGame() {
+    document.getElementById('p1-name').innerText = p1Custom.name;
+    document.getElementById('start-menu-overlay').style.display = 'none';
+    document.getElementById('game-over-screen').style.display = 'none';
+    document.getElementById('hud').style.display = 'flex';
+    resetGame();
+}
+
+// PARTICLE SYSTEM
+let particles = [];
+function createHitSparks(x, y) {
+    for (let i = 0; i < 15; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 12,
+            vy: (Math.random() - 0.5) * 12,
+            radius: Math.random() * 4 + 2,
+            color: Math.random() > 0.5 ? '#f1c40f' : '#e74c3c',
+            life: 20
+        });
+    }
+}
+
+function createBlockSparks(x, y) {
+    for (let i = 0; i < 12; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 8,
+            vy: (Math.random() - 0.5) * 8,
+            radius: Math.random() * 3 + 2,
+            color: '#3498db',
+            life: 15
+        });
+    }
+}
+
+// HADOKEN FIREBALL CLASS
+class Fireball {
+    constructor(x, y, facingRight, color, owner) {
+        this.x = x;
+        this.y = y;
+        this.vx = facingRight ? 12 : -12;
+        this.radius = 22;
+        this.facingRight = facingRight;
+        this.color = color;
+        this.owner = owner;
+        this.active = true;
+    }
+
+    update() {
+        this.x += this.vx;
+        if (this.x < -50 || this.x > canvas.width + 50) {
+            this.active = false;
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 20;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(this.x - (this.facingRight ? 12 : -12), this.y, this.radius * 0.7, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+let fireballs = [];
+
+// FIGHTER CLASS
+class Fighter {
+    constructor({ x, color, giColor, beltColor, headbandColor, fireballColor, facingRight, isAI = false, maxHealth = 100 }) {
+        this.x = x;
+        this.y = GROUND_Y;
+        this.vx = 0;
+        this.vy = 0;
+        this.width = 60;
+        this.height = 140;
+        this.color = color;
+        this.giColor = giColor;
+        this.beltColor = beltColor;
+        this.headbandColor = headbandColor;
+        this.fireballColor = fireballColor || "#3498db";
+        this.facingRight = facingRight;
+        this.isAI = isAI;
+
+        this.maxHealth = maxHealth;
+        this.health = maxHealth;
+        this.isGrounded = true;
+        this.isCrouching = false;
+        this.isBlocking = false;
+        this.state = 'idle';
+        this.animTimer = 0;
+        this.attackCooldown = 0;
+        this.aiConfig = null;
+
+        this.hitbox = null;
+    }
+
+    getHurtbox() {
+        if (this.isCrouching) {
+            return { x: this.x - 30, y: this.y - 80, width: 60, height: 80 };
+        }
+        return { x: this.x - 30, y: this.y - 140, width: 60, height: 140 };
+    }
+
+    jump() {
+        if (this.isGrounded && this.state !== 'hurt' && this.state !== 'dead') {
+            this.vy = -20;
+            this.isGrounded = false;
+            this.isBlocking = false;
+            this.state = 'jumping';
+        }
+    }
+
+    punch() {
+        if (this.attackCooldown === 0 && this.state !== 'hurt' && this.state !== 'dead') {
+            this.state = 'punch';
+            this.isBlocking = false;
+            this.animTimer = 15;
+            this.attackCooldown = 25;
+
+            this.hitbox = {
+                x: this.x + (this.facingRight ? 10 : -55),
+                y: this.isCrouching ? this.y - 65 : this.y - 115,
+                width: 45,
+                height: 25,
+                damage: 8,
+                stun: 15
+            };
+        }
+    }
+
+    kick() {
+        if (this.attackCooldown === 0 && this.state !== 'hurt' && this.state !== 'dead') {
+            this.state = 'kick';
+            this.isBlocking = false;
+            this.animTimer = 22;
+            this.attackCooldown = 35;
+
+            this.hitbox = {
+                x: this.x + (this.facingRight ? 10 : -70),
+                y: this.isCrouching ? this.y - 45 : this.y - 95,
+                width: 60,
+                height: 30,
+                damage: 14,
+                stun: 20
+            };
+        }
+    }
+
+    special() {
+        if (this.attackCooldown === 0 && this.state !== 'hurt' && this.state !== 'dead') {
+            this.state = 'special';
+            this.isBlocking = false;
+            this.animTimer = 25;
+            this.attackCooldown = 50;
+
+            setTimeout(() => {
+                if (this.state !== 'hurt' && this.state !== 'dead' && gameState === 'PLAYING') {
+                    const spawnX = this.facingRight ? this.x + 40 : this.x - 40;
+                    const spawnY = this.isCrouching ? this.y - 50 : this.y - 95;
+                    fireballs.push(new Fireball(spawnX, spawnY, this.facingRight, this.fireballColor, this));
+                }
+            }, 200);
+        }
+    }
+
+    takeDamage(amount, stunTime) {
+        if (this.isBlocking && this.state !== 'dead') {
+            const reducedDamage = Math.max(1, Math.floor(amount * 0.15));
+            this.health = Math.max(0, this.health - reducedDamage);
+            createBlockSparks(this.x, this.y - 90);
+            shakeTime = 4;
+            this.state = 'block';
+            this.animTimer = 10;
+        } else {
+            this.health = Math.max(0, this.health - amount);
+            createHitSparks(this.x, this.y - 90);
+            shakeTime = 10;
+
+            if (this.health <= 0) {
+                this.state = 'dead';
+            } else {
+                this.state = 'hurt';
+                this.animTimer = stunTime;
+            }
+        }
+    }
+
+    update(opponent) {
+        if (this.state === 'idle' || this.state === 'walking' || this.state === 'jumping' || this.state === 'block') {
+            this.facingRight = this.x < opponent.x;
+        }
+
+        if (!this.isGrounded) {
+            this.vy += GRAVITY;
+            this.y += this.vy;
+
+            if (this.y >= GROUND_Y) {
+                this.y = GROUND_Y;
+                this.vy = 0;
+                this.isGrounded = true;
+                if (this.state === 'jumping') this.state = 'idle';
+            }
+        }
+
+        this.x += this.vx;
+        this.x = Math.max(40, Math.min(canvas.width - 40, this.x));
+
+        if (this.attackCooldown > 0) this.attackCooldown--;
+
+        if (this.animTimer > 0) {
+            this.animTimer--;
+            if (this.animTimer === 0) {
+                this.hitbox = null;
+                if (this.state !== 'dead') this.state = 'idle';
+            }
+        } else {
+            this.hitbox = null;
+        }
+
+        if (this.isAI && gameState === 'PLAYING' && this.state !== 'hurt' && this.state !== 'dead') {
+            this.updateAI(opponent);
+        }
+    }
+
+    updateAI(opponent) {
+        const dist = Math.abs(this.x - opponent.x);
+
+        let speed = 3.2;
+        let punchProb = 0.04;
+        let kickProb = 0.07;
+        let specialProb = 0.015;
+        let jumpProb = 0.02;
+        let blockProb = 0.15;
+
+        if (this.aiConfig) {
+            speed = this.aiConfig.speed;
+            punchProb = this.aiConfig.punchProb;
+            kickProb = this.aiConfig.kickProb;
+            specialProb = this.aiConfig.specialProb;
+            jumpProb = this.aiConfig.jumpProb;
+            blockProb = this.aiConfig.blockProb || 0.2;
+        } else {
+            if (aiDifficulty === 'EASY') {
+                speed = 2.0; punchProb = 0.02; kickProb = 0.03; specialProb = 0.005; jumpProb = 0.005; blockProb = 0.05;
+            } else if (aiDifficulty === 'HARD') {
+                speed = 4.2; punchProb = 0.08; kickProb = 0.12; specialProb = 0.035; jumpProb = 0.04; blockProb = 0.4;
+            }
+        }
+
+        if ((opponent.state === 'punch' || opponent.state === 'kick' || opponent.state === 'special') && dist < 120) {
+            if (Math.random() < blockProb) {
+                this.isBlocking = true;
+                this.state = 'block';
+                this.vx = 0;
+                return;
+            }
+        } else {
+            this.isBlocking = false;
+        }
+
+        if (this.animTimer === 0) {
+            if (dist > 180) {
+                this.vx = this.facingRight ? speed : -speed;
+                this.state = 'walking';
+
+                if (Math.random() < specialProb) this.special();
+            } else if (dist < 75) {
+                this.vx = 0;
+                const rand = Math.random();
+                if (rand < punchProb) this.punch();
+                else if (rand < kickProb) this.kick();
+                else if (rand < jumpProb) this.jump();
+                else this.state = 'idle';
+            } else {
+                this.vx = this.facingRight ? (speed * 0.8) : -(speed * 0.8);
+                if (Math.random() < kickProb) this.kick();
+            }
+
+            if (opponent.state === 'jumping' && dist < 120 && Math.random() < 0.1) {
+                this.kick();
+            }
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        if (!this.facingRight) ctx.scale(-1, 1);
+
+        const isCrouch = this.isCrouching;
+        const bodyY = isCrouch ? -60 : -110;
+
+        // Shadow
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 35, 10, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fill();
+
+        // Legs
+        ctx.strokeStyle = this.giColor;
+        ctx.lineWidth = 16;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        if (this.state === 'kick') {
+            ctx.moveTo(-10, bodyY + 30);
+            ctx.lineTo(-15, -10);
+            ctx.moveTo(10, bodyY + 30);
+            ctx.lineTo(60, bodyY + (isCrouch ? 20 : 10));
+        } else if (isCrouch) {
+            ctx.moveTo(-15, bodyY + 20);
+            ctx.lineTo(-25, -5);
+            ctx.moveTo(15, bodyY + 20);
+            ctx.lineTo(25, -5);
+        } else {
+            ctx.moveTo(-12, bodyY + 40);
+            ctx.lineTo(-15, -5);
+            ctx.moveTo(12, bodyY + 40);
+            ctx.lineTo(15, -5);
+        }
+        ctx.stroke();
+
+        // Torso
+        ctx.fillStyle = this.giColor;
+        ctx.fillRect(-22, bodyY, 44, isCrouch ? 35 : 55);
+
+        // Belt
+        ctx.fillStyle = this.beltColor;
+        ctx.fillRect(-23, bodyY + (isCrouch ? 25 : 45), 46, 8);
+
+        // Head
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(0, bodyY - 20, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Headband
+        ctx.fillStyle = this.headbandColor;
+        ctx.fillRect(-19, bodyY - 28, 38, 7);
+        ctx.beginPath();
+        ctx.moveTo(-18, bodyY - 25);
+        ctx.lineTo(-32, bodyY - 18);
+        ctx.lineTo(-30, bodyY - 12);
+        ctx.fill();
+
+        // Arms & Defense Stance
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 12;
+
+        ctx.beginPath();
+        if (this.isBlocking || this.state === 'block') {
+            ctx.moveTo(-5, bodyY + 25);
+            ctx.lineTo(15, bodyY + 5);
+            ctx.lineTo(12, bodyY - 15);
+            ctx.moveTo(10, bodyY + 25);
+            ctx.lineTo(-5, bodyY + 5);
+            ctx.lineTo(-2, bodyY - 15);
+
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(15, bodyY, 35, -Math.PI / 2, Math.PI / 2);
+            ctx.stroke();
+        } else if (this.state === 'punch') {
+            ctx.moveTo(-5, bodyY + 15);
+            ctx.lineTo(10, bodyY + 15);
+            ctx.moveTo(5, bodyY + 10);
+            ctx.lineTo(50, bodyY + 10);
+        } else if (this.state === 'special') {
+            ctx.moveTo(-5, bodyY + 15);
+            ctx.lineTo(35, bodyY + 15);
+            ctx.moveTo(-5, bodyY + 22);
+            ctx.lineTo(35, bodyY + 22);
+        } else if (this.state === 'hurt') {
+            ctx.moveTo(0, bodyY + 15);
+            ctx.lineTo(-30, bodyY + 5);
+        } else {
+            ctx.moveTo(-5, bodyY + 20);
+            ctx.lineTo(12, bodyY + 10);
+            ctx.lineTo(8, bodyY - 5);
+        }
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+const p1 = new Fighter({
+    x: 250,
+    color: p1Custom.color,
+    giColor: p1Custom.giColor,
+    beltColor: p1Custom.beltColor,
+    headbandColor: p1Custom.headbandColor,
+    fireballColor: p1Custom.fireballColor,
+    facingRight: true,
+    isAI: false,
+    maxHealth: 100
+});
+
+const p2 = new Fighter({
+    x: 774,
+    color: p2Custom.color,
+    giColor: p2Custom.giColor,
+    beltColor: p2Custom.beltColor,
+    headbandColor: p2Custom.headbandColor,
+    fireballColor: p2Custom.fireballColor,
+    facingRight: false,
+    isAI: true,
+    maxHealth: 100
+});
+
+function processInputs() {
+    if (gameState !== 'PLAYING') return;
+
+    // Player 1 Controls
+    if (p1.state !== 'hurt' && p1.state !== 'dead') {
+        p1.vx = 0;
+
+        if (keys['KeyE'] || keys['ShiftLeft']) {
+            p1.isBlocking = true;
+            p1.state = 'block';
+        } else {
+            p1.isBlocking = false;
+        }
+
+        if (!p1.isBlocking) {
+            if (keys['KeyA']) { p1.vx = -4; p1.state = 'walking'; }
+            if (keys['KeyD']) { p1.vx = 4; p1.state = 'walking'; }
+
+            if (keys['KeyS'] && p1.isGrounded) {
+                p1.isCrouching = true;
+                p1.vx = 0;
+                p1.state = 'crouch';
+            } else {
+                p1.isCrouching = false;
+            }
+
+            if (keys['Space'] || keys['KeyW']) p1.jump();
+            if (keys['KeyF']) p1.punch();
+            if (keys['KeyG']) p1.kick();
+            if (keys['KeyH']) p1.special();
+
+            if (p1.vx === 0 && p1.isGrounded && !p1.isCrouching && p1.animTimer === 0) {
+                p1.state = 'idle';
+            }
+        }
+    }
+
+    // Player 2 Controls
+    if (!vsAI && p2.state !== 'hurt' && p2.state !== 'dead') {
+        p2.vx = 0;
+
+        if (keys['ShiftRight'] || keys['KeyJ']) {
+            p2.isBlocking = true;
+            p2.state = 'block';
+        } else {
+            p2.isBlocking = false;
+        }
+
+        if (!p2.isBlocking) {
+            if (keys['ArrowLeft']) { p2.vx = -4; p2.state = 'walking'; }
+            if (keys['ArrowRight']) { p2.vx = 4; p2.state = 'walking'; }
+
+            if (keys['ArrowDown'] && p2.isGrounded) {
+                p2.isCrouching = true;
+                p2.vx = 0;
+                p2.state = 'crouch';
+            } else {
+                p2.isCrouching = false;
+            }
+
+            if (keys['ArrowUp']) p2.jump();
+            if (keys['KeyU']) p2.punch();
+            if (keys['KeyI']) p2.kick();
+            if (keys['KeyO']) p2.special();
+
+            if (p2.vx === 0 && p2.isGrounded && !p2.isCrouching && p2.animTimer === 0) {
+                p2.state = 'idle';
+            }
+        }
+    }
+}
+
+function checkCollision(rect1, rect2) {
+    return (
+        rect1.x < rect2.x + rect2.width &&
+        rect1.x + rect1.width > rect2.x &&
+        rect1.y < rect2.y + rect2.height &&
+        rect1.y + rect1.height > rect2.y
+    );
+}
+
+function checkCombat() {
+    if (gameState !== 'PLAYING') return;
+
+    if (p1.hitbox) {
+        const p2Hurt = p2.getHurtbox();
+        if (checkCollision(p1.hitbox, p2Hurt)) {
+            p2.takeDamage(p1.hitbox.damage, p1.hitbox.stun);
+            p1.hitbox = null;
+            updateHUD();
+        }
+    }
+
+    if (p2.hitbox) {
+        const p1Hurt = p1.getHurtbox();
+        if (checkCollision(p2.hitbox, p1Hurt)) {
+            p1.takeDamage(p2.hitbox.damage, p2.hitbox.stun);
+            p2.hitbox = null;
+            updateHUD();
+        }
+    }
+
+    for (let i = fireballs.length - 1; i >= 0; i--) {
+        const fb = fireballs[i];
+        fb.update();
+
+        const target = fb.owner === p1 ? p2 : p1;
+        const targetHurt = target.getHurtbox();
+
+        if (
+            fb.x + fb.radius > targetHurt.x &&
+            fb.x - fb.radius < targetHurt.x + targetHurt.width &&
+            fb.y + fb.radius > targetHurt.y &&
+            fb.y - fb.radius < targetHurt.y + targetHurt.height
+        ) {
+            target.takeDamage(18, 25);
+            fb.active = false;
+            updateHUD();
+        }
+
+        if (!fb.active) fireballs.splice(i, 1);
+    }
+
+    if (p1.health <= 0 || p2.health <= 0) {
+        endGame();
+    }
+}
+
+function updateHUD() {
+    document.getElementById('p1-health-inner').style.width = Math.max(0, (p1.health / p1.maxHealth * 100)) + '%';
+    document.getElementById('p2-health-inner').style.width = Math.max(0, (p2.health / p2.maxHealth * 100)) + '%';
+}
+
+function endGame() {
+    gameState = 'GAME_OVER';
+    clearInterval(timerInterval);
+
+    const winnerText = document.getElementById('winner-text');
+    const subtext = document.getElementById('game-over-subtext');
+    const buttonBox = document.getElementById('game-over-buttons');
+    buttonBox.innerHTML = '';
+
+    const p1Won = p1.health > p2.health;
+
+    if (isJourneyMode) {
+        if (p1Won) {
+            if (journeyStage < journeyRoster.length - 1) {
+                winnerText.innerText = "STAGE CLEAR!";
+                winnerText.style.color = "#2ecc71";
+                subtext.innerText = `${p1Custom.name} DEFEATED THE OPPONENT! PREPARE FOR STAGE ${journeyStage + 2}`;
+
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'menu-btn';
+                nextBtn.innerText = 'NEXT STAGE ➔';
+                nextBtn.onclick = () => {
+                    journeyStage++;
+                    loadJourneyStage();
+                    launchGame();
+                };
+                buttonBox.appendChild(nextBtn);
+            } else {
+                winnerText.innerText = "JOURNEY COMPLETE!";
+                winnerText.style.color = "#f1c40f";
+                subtext.innerText = `${p1Custom.name} BEAT ALL CHALLENGERS AND BECAME THE CHAMPION!`;
+
+                const victoryBtn = document.createElement('button');
+                victoryBtn.className = 'menu-btn';
+                victoryBtn.innerText = 'MAIN MENU';
+                victoryBtn.onclick = showMainMenu;
+                buttonBox.appendChild(victoryBtn);
+            }
+        } else {
+            winnerText.innerText = "DEFEATED!";
+            winnerText.style.color = "#e74c3c";
+            subtext.innerText = `YOU LOST! YOU MUST DEFEAT THIS CHARACTER TO PROGRESS`;
+
+            const retryBtn = document.createElement('button');
+            retryBtn.className = 'menu-btn';
+            retryBtn.innerText = 'RETRY STAGE';
+            retryBtn.onclick = () => {
+                loadJourneyStage();
+                launchGame();
+            };
+            buttonBox.appendChild(retryBtn);
+
+            const menuBtn = document.createElement('button');
+            menuBtn.className = 'menu-btn btn-back';
+            menuBtn.innerText = 'MAIN MENU';
+            menuBtn.onclick = showMainMenu;
+            buttonBox.appendChild(menuBtn);
+        }
+    } else {
+        const p2DisplayName = document.getElementById('p2-name').innerText;
+        if (p1Won) {
+            winnerText.innerText = `${p1Custom.name} WINS!`;
+            winnerText.style.color = "#3498db";
+            subtext.innerText = "VICTORY!";
+        } else if (p2.health > p1.health) {
+            winnerText.innerText = `${p2DisplayName} WINS!`;
+            winnerText.style.color = "#e74c3c";
+            subtext.innerText = "DEFEAT!";
+        } else {
+            winnerText.innerText = "DRAW GAME";
+            winnerText.style.color = "#f1c40f";
+            subtext.innerText = "TIME EXPIRED";
+        }
+
+        const rematchBtn = document.createElement('button');
+        rematchBtn.className = 'menu-btn';
+        rematchBtn.innerText = 'REMATCH';
+        rematchBtn.onclick = launchGame;
+        buttonBox.appendChild(rematchBtn);
+
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'menu-btn btn-back';
+        menuBtn.innerText = 'MAIN MENU';
+        menuBtn.onclick = showMainMenu;
+        buttonBox.appendChild(menuBtn);
+    }
+
+    document.getElementById('game-over-screen').style.display = 'flex';
+}
+
+function resetGame() {
+    p1.health = p1.maxHealth;
+    p2.health = p2.maxHealth;
+    p1.x = 250;
+    p2.x = 774;
+    p1.state = 'idle';
+    p2.state = 'idle';
+    p1.isBlocking = false;
+    p2.isBlocking = false;
+    p1.vx = 0; p1.vy = 0;
+    p2.vx = 0; p2.vy = 0;
+    gameTimer = 99;
+    gameState = 'PLAYING';
+    fireballs = [];
+
+    document.getElementById('timer').innerText = gameTimer;
+    updateHUD();
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        if (gameState === 'PLAYING' && gameTimer > 0) {
+            gameTimer--;
+            document.getElementById('timer').innerText = gameTimer;
+            if (gameTimer === 0) endGame();
+        }
+    }, 1000);
+}
+
+function drawStage() {
+    const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    if (isJourneyMode && journeyStage === 1) {
+        sky.addColorStop(0, '#2c0003');
+        sky.addColorStop(0.7, '#6b0f1a');
+        sky.addColorStop(1, '#b01e05');
+    } else {
+        sky.addColorStop(0, '#1a1c23');
+        sky.addColorStop(0.7, '#3d2352');
+        sky.addColorStop(1, '#a04000');
+    }
+
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.beginPath();
+    ctx.arc(512, 200, 120, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#111318';
+    ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
+
+    ctx.fillStyle = isJourneyMode && journeyStage === 1 ? '#8e44ad' : '#c0392b';
+    ctx.fillRect(0, GROUND_Y, canvas.width, 12);
+}
+
+function gameLoop() {
+    ctx.save();
+
+    if (shakeTime > 0) {
+        shakeTime--;
+        ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
+    }
+
+    drawStage();
+
+    p2.isAI = vsAI;
+
+    if (gameState === 'PLAYING') {
+        processInputs();
+        p1.update(p2);
+        p2.update(p1);
+        checkCombat();
+    } else if (gameState === 'MENU' || gameState === 'CUSTOMIZE') {
+        p1.x = 280; p2.x = 744;
+        p1.facingRight = true; p2.facingRight = false;
+        p1.state = 'idle'; p2.state = 'idle';
+        p1.update(p2); p2.update(p1);
+    }
+
+    p1.draw();
+    p2.draw();
+
+    fireballs.forEach(fb => fb.draw());
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    ctx.restore();
+    requestAnimationFrame(gameLoop);
+}
+
+applyCustomizersToFighters();
+gameLoop();
+</script>
+</body>
+</html>
